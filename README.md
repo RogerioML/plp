@@ -1,2 +1,3 @@
 # plp
-Um pacote para tratar PLP do lado de fora dos Correios
+
+Um módulo para manipulação de PLPS.
