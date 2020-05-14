@@ -1,19 +1,26 @@
 package plp
 
 import (
+	"crypto/tls"
+	"database/sql"
 	"encoding/json"
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"regexp"
 	"strings"
 	"time"
+
+	"golang.org/x/text/encoding/charmap"
 )
 
 const (
 	nuCliente = 2019020716
 	//Versao indica a versão atual do módulo de manipulação de PLPs
-	Versao = "1.1.11"
+	Versao      = "1.1.11"
+	LayoutMysql = "2006-01-02 15:04:05"
 )
 
 /*
@@ -464,22 +471,6 @@ func ObtemListaPLPSIntactas(contrato string, dias int) ([]int, error) {
 
 }
 
-package main
-
-import (
-	"crypto/tls"
-	"database/sql"
-	"encoding/xml"
-	"errors"
-	"fmt"
-	"io/ioutil"
-	"net/http"
-	"strings"
-	"time"
-
-	"golang.org/x/text/encoding/charmap"
-)
-
 //IsoUtf8 converte de ISO para UTF-8
 func IsoUtf8(b []byte) ([]byte, error) {
 	r := charmap.ISO8859_1.NewDecoder().Reader(strings.NewReader(string(b)))
@@ -580,7 +571,7 @@ func removePlp(plpNu string, db *sql.DB) error {
 		}
 		return fmt.Errorf("erro ao excluir plp: %s", err)
 	}
-	fmt.Printf("%s plp %s excluida em %.3f segundos\n", now.Format(layoutMysql), plpNu, time.Since(now).Seconds())
+	fmt.Printf("%s plp %s excluida em %.3f segundos\n", now.Format(LayoutMysql), plpNu, time.Since(now).Seconds())
 	return tx.Commit()
 }
 
@@ -614,9 +605,6 @@ func removePlpPorEtiqueta(etiqueta string, db *sql.DB) error {
 		}
 		return fmt.Errorf("erro ao excluir plp: %s", err)
 	}
-	fmt.Printf("%s plp %s excluida em %.3f segundos\n", now.Format(layoutMysql), plpNu, time.Since(now).Seconds())
+	fmt.Printf("%s plp %s excluida em %.3f segundos\n", now.Format(LayoutMysql), plpNu, time.Since(now).Seconds())
 	return tx.Commit()
 }
-
-
-
