@@ -478,7 +478,7 @@ func IsoUtf8(b []byte) ([]byte, error) {
 }
 
 //estrutura para conter o numero de uma PLP
-type FechaPlpVariosServicosResponse struct {
+type fechaPlpVariosServicosResponse struct {
 	XMLName xml.Name `xml:"Envelope"`
 	Body    struct {
 		XMLName                        xml.Name
@@ -500,8 +500,8 @@ type fault struct {
 	} `xml:"Body"`
 }
 
-//fechaPlpVariosServicos faz a chamada ao SIGPEWEB, fecha uma PLP
-func fechaPlpVariosServicos(wsdl string) (string, error) {
+//FechaPlpVariosServicos faz a chamada ao SIGPEWEB, fecha uma PLP
+func FechaPlpVariosServicos(wsdl string) (string, error) {
 	payload := fmt.Sprintf(
 		`<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cli="http://cliente.bean.master.sigep.bsb.correios.com.br/">
 			<soapenv:Header/>
