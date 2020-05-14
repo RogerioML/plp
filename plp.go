@@ -478,7 +478,7 @@ func IsoUtf8(b []byte) ([]byte, error) {
 }
 
 //estrutura para conter o numero de uma PLP
-type fechaPlpVariosServicosResponse struct {
+type FechaPlpVariosServicosResponse struct {
 	XMLName xml.Name `xml:"Envelope"`
 	Body    struct {
 		XMLName                        xml.Name
