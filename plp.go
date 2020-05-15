@@ -303,6 +303,61 @@ type fault struct {
 }
 
 //estrutura para conter o retorno do método geraDigitoVeiricadorEtiquetas
+type solicitaEtiquetasResponse struct {
+	XMLName xml.Name `xml:"Envelope"`
+	Body    struct {
+		XMLName                  xml.Name
+		SolicitaEtiquetaResponse struct {
+			FaixaEtiquetas string `xml:"return"`
+		} `xml:"SolicitaEtiquetasResponse"`
+	}
+}
+
+//SolicitaEtiqueta faz a chamada ao SIGEPWEB e obtém uma faixa de etiquetas
+func SolicitaEtiqueta(wsdl string, codigo string) (string, error) {
+	payload := fmt.Sprintf(`
+		<x:Envelope
+		xmlns:x="http://schemas.xmlsoap.org/soap/envelope/"
+		xmlns:cli="http://cliente.bean.master.sigep.bsb.correios.com.br/">
+		<x:Header/>
+		<x:Body>
+			<cli:solicitaEtiquetas>
+				<tipoDestinatario>C</tipoDestinatario>
+				<identificador>34028316000103</identificador>
+				<idServico>` + codigo + `</idServico>
+				<qtdEtiquetas>1</qtdEtiquetas>
+				<usuario>gati</usuario>
+				<senha>lbqhj</senha>
+			</cli:solicitaEtiquetas>
+		</x:Body>
+	</x:Envelope>
+	`)
+	req, err := http.NewRequest("POST", wsdl, strings.NewReader(payload))
+	if err != nil {
+		return "", err
+	}
+	http.DefaultClient.Transport = &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", err
+	}
+	b, err := ioutil.ReadAll(res.Body)
+	defer res.Body.Close()
+	if err != nil {
+		return "", err
+	}
+	b, err = IsoUtf8(b)
+	if strings.Contains(string(b), "faultstring") {
+		respError := fault{}
+		_ = xml.Unmarshal([]byte(b), &respError)
+		return "", errors.New(respError.Body.Fault.FaultString)
+	}
+	faixa := solicitaEtiquetasResponse{}
+	_ = xml.Unmarshal([]byte(b), &faixa)
+	return faixa.Body.SolicitaEtiquetaResponse.FaixaEtiquetas, nil
+}
+
+//estrutura para conter o retorno do método geraDigitoVeiricadorEtiquetas
 type geraDigitoVerificadorEtiquetasResponse struct {
 	XMLName xml.Name `xml:"Envelope"`
 	Body    struct {
