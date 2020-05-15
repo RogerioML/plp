@@ -314,7 +314,7 @@ type solicitaEtiquetasResponse struct {
 }
 
 //SolicitaEtiqueta faz a chamada ao SIGEPWEB e obtém uma faixa de etiquetas
-func SolicitaEtiqueta(wsdl string, codigo string) (string, error) {
+func SolicitaEtiquetas(wsdl string, codigo string) (string, error) {
 	payload := fmt.Sprintf(`
 		<x:Envelope
 		xmlns:x="http://schemas.xmlsoap.org/soap/envelope/"
