@@ -306,9 +306,10 @@ type fault struct {
 type solicitaEtiquetasResponse struct {
 	XMLName xml.Name `xml:"Envelope"`
 	Body    struct {
+		XMLName                   xml.Name
 		SolicitaEtiquetasResponse struct {
 			FaixaEtiquetas string `xml:"return"`
-		} `xml:"SolicitaEtiquetasResponse"`
+		} `xml:"solicitaEtiquetasResponse"`
 	} `xml:"Body"`
 }
 
@@ -364,7 +365,7 @@ type geraDigitoVerificadorEtiquetasResponse struct {
 		GeraDigitoVerificadorEtiquetasResponse struct {
 			DigitoVerificador int `xml:"return"`
 		} `xml:"geraDigitoVerificadorEtiquetasResponse"`
-	}
+	} `xml:"Body"`
 }
 
 //GeraDigitoVerificadorEtiquetas faz a chamada ao SIGPEWEB e gera o dígito verificador de uma etiqueta
