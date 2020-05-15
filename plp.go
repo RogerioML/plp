@@ -306,14 +306,13 @@ type fault struct {
 type solicitaEtiquetasResponse struct {
 	XMLName xml.Name `xml:"Envelope"`
 	Body    struct {
-		XMLName                  xml.Name
-		SolicitaEtiquetaResponse struct {
+		SolicitaEtiquetasResponse struct {
 			FaixaEtiquetas string `xml:"return"`
 		} `xml:"SolicitaEtiquetasResponse"`
 	}
 }
 
-//SolicitaEtiqueta faz a chamada ao SIGEPWEB e obtém uma faixa de etiquetas
+//SolicitaEtiquetas faz a chamada ao SIGEPWEB e obtém uma faixa de etiquetas
 func SolicitaEtiquetas(wsdl string, codigo string) (string, error) {
 	payload := fmt.Sprintf(`
 		<x:Envelope
@@ -354,7 +353,7 @@ func SolicitaEtiquetas(wsdl string, codigo string) (string, error) {
 	}
 	faixa := solicitaEtiquetasResponse{}
 	_ = xml.Unmarshal([]byte(b), &faixa)
-	return faixa.Body.SolicitaEtiquetaResponse.FaixaEtiquetas, nil
+	return faixa.Body.SolicitaEtiquetasResponse.FaixaEtiquetas, nil
 }
 
 //estrutura para conter o retorno do método geraDigitoVeiricadorEtiquetas
