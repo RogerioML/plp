@@ -309,7 +309,7 @@ type solicitaEtiquetasResponse struct {
 		SolicitaEtiquetasResponse struct {
 			FaixaEtiquetas string `xml:"return"`
 		} `xml:"SolicitaEtiquetasResponse"`
-	}
+	} `xml:"Body"`
 }
 
 //SolicitaEtiquetas faz a chamada ao SIGEPWEB e obtém uma faixa de etiquetas
