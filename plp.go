@@ -323,11 +323,11 @@ func SolicitaEtiquetas(wsdl string, codigo string) (string, error) {
 		<x:Body>
 			<cli:solicitaEtiquetas>
 				<tipoDestinatario>C</tipoDestinatario>
-				<identificador>34028316000103</identificador>
+				<identificador>06347409000165</identificador>
 				<idServico>` + codigo + `</idServico>
 				<qtdEtiquetas>1</qtdEtiquetas>
-				<usuario>gati</usuario>
-				<senha>lbqhj</senha>
+				<usuario>strelaartes@hotmail.com</usuario>
+				<senha>sk1172</senha>
 			</cli:solicitaEtiquetas>
 		</x:Body>
 	</x:Envelope>
