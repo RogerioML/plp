@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -314,7 +315,7 @@ type solicitaEtiquetasResponse struct {
 }
 
 //SolicitaEtiquetas faz a chamada ao SIGEPWEB e obtém uma faixa de etiquetas
-func SolicitaEtiquetas(wsdl string, codigo string) (string, error) {
+func SolicitaEtiquetas(wsdl string, codigo string, identificador string, qtdEtiquetas int, user string, senha string) (string, error) {
 	payload := fmt.Sprintf(`
 		<x:Envelope
 		xmlns:x="http://schemas.xmlsoap.org/soap/envelope/"
@@ -323,11 +324,11 @@ func SolicitaEtiquetas(wsdl string, codigo string) (string, error) {
 		<x:Body>
 			<cli:solicitaEtiquetas>
 				<tipoDestinatario>C</tipoDestinatario>
-				<identificador>06347409000165</identificador>
+				<identificador>` + identificador + `</identificador>
 				<idServico>` + codigo + `</idServico>
-				<qtdEtiquetas>1</qtdEtiquetas>
-				<usuario>strelaartes@hotmail.com</usuario>
-				<senha>sk1172</senha>
+				<qtdEtiquetas>` + strconv.Itoa(qtdEtiquetas) + `</qtdEtiquetas>
+				<usuario>` + user + `</usuario>
+				<senha>` + senha + `</senha>
 			</cli:solicitaEtiquetas>
 		</x:Body>
 	</x:Envelope>
