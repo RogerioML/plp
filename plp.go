@@ -420,7 +420,7 @@ type fechaPlpVariosServicosResponse struct {
 }
 
 //FechaPlpVariosServicos faz a chamada ao SIGPEWEB, fecha uma PLP
-func FechaPlpVariosServicos(wsdl string, etiqueta string, etiquetaSemVerificador string) (string, error) {
+func FechaPlpVariosServicos(wsdl string, etiqueta string, etiquetaSemVerificador string) (string, string, error) {
 	payload := fmt.Sprintf(
 		`<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cli="http://cliente.bean.master.sigep.bsb.correios.com.br/">
 			<soapenv:Header/>
@@ -443,27 +443,27 @@ func FechaPlpVariosServicos(wsdl string, etiqueta string, etiquetaSemVerificador
 		</soapenv:Envelope>`)
 	req, err := http.NewRequest("POST", wsdl, strings.NewReader(payload))
 	if err != nil {
-		return "", err
+		return "", req.Response.Status, err
 	}
 	http.DefaultClient.Transport = &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return "", err
+		return "", req.Response.Status, err
 	}
 	b, err := ioutil.ReadAll(res.Body)
 	defer res.Body.Close()
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	b, err = IsoUtf8(b)
 	if strings.Contains(string(b), "faultstring") {
 		respError := fault{}
 		_ = xml.Unmarshal([]byte(b), &respError)
-		return "", errors.New(respError.Body.Fault.FaultString)
+		return "", req.Response.Status, errors.New(respError.Body.Fault.FaultString)
 	}
 	plp := fechaPlpVariosServicosResponse{}
 	_ = xml.Unmarshal([]byte(b), &plp)
-	return plp.Body.FechaPlpVariosServicosResponse.NumeroPLP, nil
+	return plp.Body.FechaPlpVariosServicosResponse.NumeroPLP, req.Response.Status, nil
 }
 
 func removePlp(plpNu string, db *sql.DB) error {
