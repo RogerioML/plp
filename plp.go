@@ -408,6 +408,62 @@ func GeraDigitoVerificadorEtiquetas(wsdl string, etiqueta string) (int, error) {
 	return digito.Body.GeraDigitoVerificadorEtiquetasResponse.DigitoVerificador, nil
 }
 
+//estrutura para obter dados do contrato de um cliente
+type consultaClientePorContratoResponse struct {
+	XMLName xml.Name `xml:"Envelope"`
+	Body    struct {
+		XMLName                            xml.Name
+		ConsultaClientePorContratoResponse struct {
+			Cliente struct {
+				Codigo               string `xml:"codigo,attr"`
+				CNPJ                 string `xml:"cnpj,atrr"`
+				RazaoSocial          string `xml:"razaoSocial,attr"`
+				NomeFantasia         string `xml:"nomeFantasia,attr"`
+				CodigoAdministrativo string `xml:"codigoAdministrativo,attr"`
+			} `xml:"cliente"`
+		} `xml:"consultaClientePorContratoResponse"`
+	}
+}
+
+//ConsultaClientePorContratoResponse faz a chamada ao SIGEPWEB e obtém dados de indentificao de um cliente
+func ConsultaClientePorContratoResponse(wsdl string, contrato string, dr string) (consultaClientePorContratoResponse, error) {
+	cliente := consultaClientePorContratoResponse{}
+	payload := fmt.Sprintf(`
+		<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ser="http://service.clientecontrato.correios.com.br/">
+		<soapenv:Header/>
+		<soapenv:Body>
+			<ser:consultaClientePorContrato>		  
+				<numeroContrato>` + contrato + `</numeroContrato>		  
+				<DR>` + dr + `</DR>
+			</ser:consultaClientePorContrato>
+		</soapenv:Body>
+		</soapenv:Envelope>
+	`)
+	req, err := http.NewRequest("POST", wsdl, strings.NewReader(payload))
+	if err != nil {
+		return cliente, err
+	}
+	http.DefaultClient.Transport = &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return cliente, err
+	}
+	b, err := ioutil.ReadAll(res.Body)
+	defer res.Body.Close()
+	if err != nil {
+		return cliente, err
+	}
+	b, err = IsoUtf8(b)
+	if strings.Contains(string(b), "faultstring") {
+		respError := fault{}
+		_ = xml.Unmarshal([]byte(b), &respError)
+		return cliente, errors.New(respError.Body.Fault.FaultString)
+	}
+
+	_ = xml.Unmarshal([]byte(b), &cliente)
+	return cliente, nil
+}
+
 //estrutura para conter o numero de uma PLP
 type fechaPlpVariosServicosResponse struct {
 	XMLName xml.Name `xml:"Envelope"`
