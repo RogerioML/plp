@@ -409,59 +409,59 @@ func GeraDigitoVerificadorEtiquetas(wsdl string, etiqueta string) (int, error) {
 }
 
 //estrutura para obter dados do contrato de um cliente
-type consultaClientePorContratoResponse struct {
+type buscaServicosResponse struct {
 	XMLName xml.Name `xml:"Envelope"`
 	Body    struct {
-		XMLName                            xml.Name
-		ConsultaClientePorContratoResponse struct {
-			Cliente struct {
-				Codigo               string `xml:"codigo,attr"`
-				CNPJ                 string `xml:"cnpj,atrr"`
-				RazaoSocial          string `xml:"razaoSocial,attr"`
-				NomeFantasia         string `xml:"nomeFantasia,attr"`
-				CodigoAdministrativo string `xml:"codigoAdministrativo,attr"`
-			} `xml:"cliente"`
-		} `xml:"consultaClientePorContratoResponse"`
+		XMLName               xml.Name
+		BuscaServicosResponse struct {
+			Return []struct {
+				Codigo    string `xml:"codigo"`
+				ID        int    `xml:"id"`
+				Descricao string `xml:"descricao"`
+			} `xml:"return"`
+		} `xml:"buscaServicosResponse"`
 	}
 }
 
 //ConsultaClientePorContratoResponse faz a chamada ao SIGEPWEB e obtém dados de indentificao de um cliente
-func ConsultaClientePorContratoResponse(wsdl string, contrato string, dr string) (consultaClientePorContratoResponse, error) {
-	cliente := consultaClientePorContratoResponse{}
+func ConsultaClientePorContratoResponse(wsdl string, contrato string, cartao string, usuario string, senha string) (buscaServicosResponse, error) {
+	servicos := buscaServicosResponse{}
 	payload := fmt.Sprintf(`
-		<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ser="http://service.clientecontrato.correios.com.br/">
-		<soapenv:Header/>
-		<soapenv:Body>
-			<ser:consultaClientePorContrato>		  
-				<numeroContrato>` + contrato + `</numeroContrato>		  
-				<DR>` + dr + `</DR>
-			</ser:consultaClientePorContrato>
-		</soapenv:Body>
-		</soapenv:Envelope>
+		<x:Envelope xmlns:x="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cli="http://cliente.bean.master.sigep.bsb.correios.com.br/">
+			<x:Header/>
+				<x:Body>
+					<cli:buscaServicos>
+						<idContrato> ` + contrato + `</idContrato>
+						<idCartaoPostagem>` + cartao + `</idCartaoPostagem>
+						<usuario>` + usuario + `</usuario>
+						<senha>` + senha + `</senha>
+					</cli:buscaServicos>
+			</x:Body>
+		</x:Envelope>
 	`)
 	req, err := http.NewRequest("POST", wsdl, strings.NewReader(payload))
 	if err != nil {
-		return cliente, err
+		return servicos, err
 	}
 	http.DefaultClient.Transport = &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return cliente, err
+		return servicos, err
 	}
 	b, err := ioutil.ReadAll(res.Body)
 	defer res.Body.Close()
 	if err != nil {
-		return cliente, err
+		return servicos, err
 	}
 	b, err = IsoUtf8(b)
 	if strings.Contains(string(b), "faultstring") {
 		respError := fault{}
 		_ = xml.Unmarshal([]byte(b), &respError)
-		return cliente, errors.New(respError.Body.Fault.FaultString)
+		return servicos, errors.New(respError.Body.Fault.FaultString)
 	}
 
-	_ = xml.Unmarshal([]byte(b), &cliente)
-	return cliente, nil
+	_ = xml.Unmarshal([]byte(b), &servicos)
+	return servicos, nil
 }
 
 //estrutura para conter o numero de uma PLP
