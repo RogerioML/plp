@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -518,7 +517,6 @@ func FechaPlpVariosServicos(wsdl string, etiqueta string, etiquetaSemVerificador
 	if err != nil {
 		return "", err
 	}
-	log.Println(plp)
 	return plp.Body.FechaPlpVariosServicosResponse.NumeroPLP, nil
 }
 
