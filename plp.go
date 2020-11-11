@@ -518,7 +518,11 @@ func FechaPlpVariosServicos(wsdl string, etiqueta string, etiquetaSemVerificador
 		return "", req.Response.Status, errors.New(respError.Body.Fault.FaultString)
 	}
 	plp := fechaPlpVariosServicosResponse{}
-	_ = xml.Unmarshal([]byte(b), &plp)
+	err = xml.Unmarshal([]byte(b), &plp)
+	if err != nil {
+		return "", req.Response.Status, err
+	}
+
 	return plp.Body.FechaPlpVariosServicosResponse.NumeroPLP, req.Response.Status, nil
 }
 
