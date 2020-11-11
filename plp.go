@@ -464,6 +464,64 @@ func BuscaServicos(wsdl string, contrato string, cartao string, usuario string, 
 	return servicos, nil
 }
 
+//estrutura para conter o numero de uma PLP
+type fechaPlpVariosServicosResponse struct {
+	XMLName xml.Name `xml:"Envelope"`
+	Body    struct {
+		XMLName                        xml.Name
+		FechaPlpVariosServicosResponse struct {
+			NumeroPLP string `xml:"return"`
+		} `xml:"fechaPlpVariosServicosResponse"`
+	}
+}
+
+//FechaPlpVariosServicos faz a chamada ao SIGPEWEB, fecha uma PLP
+func FechaPlpVariosServicos(wsdl string, etiqueta string, etiquetaSemVerificador string) (string, string, error) {
+	payload := fmt.Sprintf(
+		`<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cli="http://cliente.bean.master.sigep.bsb.correios.com.br/">
+			<soapenv:Header/>
+			<soapenv:Body>
+				<cli:fechaPlpVariosServicos>
+					<!--Optional:-->
+					<xml><![CDATA[<?ml version="1.0" encoding="ISO-8859-1"?><correioslog><tipo_arquivo>Postagem</tipo_arquivo><versao_arquivo>2.3</versao_arquivo><plp><id_plp /><valor_global/><mcu_unidade_postagem/><nome_unidade_postagem/><cartao_postagem>0068600275</cartao_postagem></plp><remetente><numero_contrato>9912208555</numero_contrato><numero_diretoria>10</numero_diretoria><codigo_administrativo>08082650</codigo_administrativo><nome_remetente>Monitor de Fechamento de PLP</nome_remetente><logradouro_remetente>SNQ Quadra 1 Bloco A 2º SS</logradouro_remetente><numero_remetente>0</numero_remetente><complemento_remetente/><bairro_remetente>Asa Norte</bairro_remetente><cep_remetente>70002900</cep_remetente><cidade_remetente>Brasília</cidade_remetente><uf_remetente>DF</uf_remetente><telefone_remetente>6121416129</telefone_remetente><fax_remetente/><email_remetente/></remetente><forma_pagamento/><objeto_postal><numero_etiqueta>` + etiqueta + `</numero_etiqueta><codigo_objeto_cliente/><codigo_servico_postagem>04162</codigo_servico_postagem><cubagem>0,0000</cubagem><peso>800</peso><rt1/><rt2/><destinatario><nome_destinatario>Correios DETEC</nome_destinatario><telefone_destinatario>6121416129</telefone_destinatario><celular_destinatario/><email_destinatario/><logradouro_destinatario>SNN Quadra 1 Bloco A</logradouro_destinatario><complemento_destinatario/><numero_end_destinatario>0</numero_end_destinatario></destinatario><nacional><bairro_destinatario>Asa Norte</bairro_destinatario><cidade_destinatario>Brasília</cidade_destinatario><uf_destinatario>DF</uf_destinatario><cep_destinatario>70002900</cep_destinatario><codigo_usuario_postal/><centro_custo_cliente/><numero_nota_fiscal>1234567</numero_nota_fiscal><serie_nota_fiscal/><valor_nota_fiscal/><natureza_nota_fiscal/><descricao_objeto/><valor_a_cobrar>0,0</valor_a_cobrar></nacional><servico_adicional><codigo_servico_adicional>025</codigo_servico_adicional><valor_declarado/></servico_adicional><dimensao_objeto><tipo_objeto>002</tipo_objeto><dimensao_altura>50</dimensao_altura><dimensao_largura>30</dimensao_largura><dimensao_comprimento>40</dimensao_comprimento><dimensao_diametro>0</dimensao_diametro></dimensao_objeto><data_postagem_sara/><status_processamento>0</status_processamento><numero_comprovante_postagem/><valor_cobrado/></objeto_postal></correioslog>]]></xml>
+					<!--Optional:-->
+					<idPlpCliente>15052020</idPlpCliente>
+					<!--Optional:-->
+					<cartaoPostagem>0068600275</cartaoPostagem>
+					<!--Zero or more repetitions:-->
+					<listaEtiquetas>` + etiquetaSemVerificador + `</listaEtiquetas>
+					<!--Optional:-->
+					<usuario>gati</usuario>
+					<!--Optional:-->
+					<senha>lbqhj</senha>
+				</cli:fechaPlpVariosServicos>
+			</soapenv:Body>
+		</soapenv:Envelope>`)
+	req, err := http.NewRequest("POST", wsdl, strings.NewReader(payload))
+	if err != nil {
+		return "", req.Response.Status, err
+	}
+	http.DefaultClient.Transport = &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", req.Response.Status, err
+	}
+	b, err := ioutil.ReadAll(res.Body)
+	defer res.Body.Close()
+	if err != nil {
+		return "", "", err
+	}
+	b, err = IsoUtf8(b)
+	if strings.Contains(string(b), "faultstring") {
+		respError := fault{}
+		_ = xml.Unmarshal([]byte(b), &respError)
+		return "", req.Response.Status, errors.New(respError.Body.Fault.FaultString)
+	}
+	plp := fechaPlpVariosServicosResponse{}
+	_ = xml.Unmarshal([]byte(b), &plp)
+	return plp.Body.FechaPlpVariosServicosResponse.NumeroPLP, req.Response.Status, nil
+}
+
 func removePlp(plpNu string, db *sql.DB) error {
 	//remove os objetos da PLP do banco
 	now := time.Now()
