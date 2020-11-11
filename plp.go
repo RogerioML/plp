@@ -423,8 +423,8 @@ type buscaServicosResponse struct {
 	}
 }
 
-//ConsultaClientePorContratoResponse faz a chamada ao SIGEPWEB e obtém dados de indentificao de um cliente
-func ConsultaClientePorContratoResponse(wsdl string, contrato string, cartao string, usuario string, senha string) (buscaServicosResponse, error) {
+//BuscaServicos faz a chamada ao SIGEPWEB e obtém dados de indentificao de um cliente
+func BuscaServicos(wsdl string, contrato string, cartao string, usuario string, senha string) (buscaServicosResponse, error) {
 	servicos := buscaServicosResponse{}
 	payload := fmt.Sprintf(`
 		<x:Envelope xmlns:x="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cli="http://cliente.bean.master.sigep.bsb.correios.com.br/">
