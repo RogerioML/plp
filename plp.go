@@ -478,7 +478,7 @@ type ConsultaCEPResponse struct {
 				UF          string `xml:"uf"`
 			} `xml:"return"`
 		} `xml:"consultaCEPResponse"`
-	}
+	} `xml:"Body"`
 }
 
 //ConsultaCEP faz a chamada ao SIGEPWEB e obtem o endereco correspondente a um CEP
@@ -514,9 +514,8 @@ func ConsultaCEP(wsdl string, cep string) (ConsultaCEPResponse, error) {
 		_ = xml.Unmarshal([]byte(b), &respError)
 		return endereco, errors.New(respError.Body.Fault.FaultString)
 	}
-	plp := fechaPlpVariosServicosResponse{}
 
-	err = xml.Unmarshal([]byte(b), &plp)
+	err = xml.Unmarshal([]byte(b), &endereco)
 	if err != nil {
 		return endereco, err
 	}
