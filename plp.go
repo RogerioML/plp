@@ -464,6 +464,65 @@ func BuscaServicos(wsdl string, contrato string, cartao string, usuario string, 
 	return servicos, nil
 }
 
+//estrutura para conter os dados de um endereço a partir do CEP
+type ConsultaCEPResponse struct {
+	XMLName xml.Name `xml:"Envelope"`
+	Body    struct {
+		ConsultaCEPResponse struct {
+			Return struct {
+				Bairro      string `xml:"bairro"`
+				Cep         string `xml:"cep"`
+				Cidade      string `xml:"cidade"`
+				Complemento string `xml:"complemento2"`
+				Endereco    string `xml:"end"`
+				UF          string `xml:"uf"`
+			} `xml:"return"`
+		} `xml:"consultaCEPResponse"`
+	}
+}
+
+//ConsultaCEP faz a chamada ao SIGEPWEB e obtem o endereco correspondente a um CEP
+func ConsultaCEP(wsdl string, cep string) (ConsultaCEPResponse, error) {
+	endereco := ConsultaCEPResponse{}
+	payload := fmt.Sprintf(
+		`<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cli="http://cliente.bean.master.sigep.bsb.correios.com.br/">
+		<soapenv:Header/>
+		<soapenv:Body>
+			<cli:consultaCEP>
+				<!--Optional:-->
+				<cep>` + cep + `</cep>
+			</cli:consultaCEP>
+		</soapenv:Body>
+		</soapenv:Envelope>`)
+	req, err := http.NewRequest("POST", wsdl, strings.NewReader(payload))
+	if err != nil {
+		return endereco, err
+	}
+	http.DefaultClient.Transport = &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return endereco, err
+	}
+	b, err := ioutil.ReadAll(res.Body)
+	defer res.Body.Close()
+	if err != nil {
+		return endereco, err
+	}
+	b, err = IsoUtf8(b)
+	if strings.Contains(string(b), "faultstring") {
+		respError := fault{}
+		_ = xml.Unmarshal([]byte(b), &respError)
+		return endereco, errors.New(respError.Body.Fault.FaultString)
+	}
+	plp := fechaPlpVariosServicosResponse{}
+
+	err = xml.Unmarshal([]byte(b), &plp)
+	if err != nil {
+		return endereco, err
+	}
+	return endereco, nil
+}
+
 //estrutura para conter o numero de uma PLP
 type fechaPlpVariosServicosResponse struct {
 	XMLName xml.Name `xml:"Envelope"`
