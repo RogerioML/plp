@@ -522,6 +522,59 @@ func ConsultaCEP(cep string) (ConsultaCEPResponse, error) {
 	return endereco, nil
 }
 
+type solicitaPLPResponse struct {
+	XMLName xml.Name `xml:"Envelope"`
+	Body    struct {
+		XMLName             xml.Name
+		SolicitaPLPResponse struct {
+			XML string `xml:"return"`
+		} `xml:"solicitaPLPResponse"`
+	} `xml:"Body"`
+}
+
+//ConsultaCEP faz a chamada ao SIGEPWEB e obtem o endereco correspondente a um CEP
+func solicitaPLP(plp string, etiqueta string, usuario string, senha string) (string, error) {
+	ret := solicitaPLPResponse{}
+	payload := fmt.Sprintf(`
+	<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cli="http://cliente.bean.master.sigep.bsb.correios.com.br/">
+		<soapenv:Header/>
+			<soapenv:Body>
+					<cli:solicitaPLP>
+						<idPlpMaster>` + plp + `</idPlpMaster>
+						<numEtiqueta>` + etiqueta + `</numEtiqueta>
+						<usuario>` + usuario + `</usuario>
+						<senha>` + senha + `</senha>
+					</cli:solicitaPLP>
+			</soapenv:Body>
+		</soapenv:Envelope>`)
+	req, err := http.NewRequest("POST", Wsdl, strings.NewReader(payload))
+	if err != nil {
+		return "", err
+	}
+	http.DefaultClient.Transport = &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", err
+	}
+	b, err := ioutil.ReadAll(res.Body)
+	defer res.Body.Close()
+	if err != nil {
+		return "", err
+	}
+	b, err = IsoUtf8(b)
+	if strings.Contains(string(b), "faultstring") {
+		respError := fault{}
+		_ = xml.Unmarshal([]byte(b), &respError)
+		return "", errors.New(respError.Body.Fault.FaultString)
+	}
+
+	err = xml.Unmarshal([]byte(b), &ret)
+	if err != nil {
+		return "", err
+	}
+	return ret.Body.SolicitaPLPResponse.XML, nil
+}
+
 //estrutura para conter o numero de uma PLP
 type fechaPlpVariosServicosResponse struct {
 	XMLName xml.Name `xml:"Envelope"`
