@@ -533,7 +533,7 @@ type solicitaPLPResponse struct {
 }
 
 //ConsultaCEP faz a chamada ao SIGEPWEB e obtem o endereco correspondente a um CEP
-func solicitaPLP(plp string, etiqueta string, usuario string, senha string) (string, error) {
+func SolicitaPLP(plp string, etiqueta string, usuario string, senha string) (string, error) {
 	ret := solicitaPLPResponse{}
 	payload := fmt.Sprintf(`
 	<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cli="http://cliente.bean.master.sigep.bsb.correios.com.br/">
