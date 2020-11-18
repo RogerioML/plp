@@ -2,7 +2,6 @@ package plp
 
 import (
 	"crypto/tls"
-	"database/sql"
 	"encoding/json"
 	"encoding/xml"
 	"errors"
@@ -51,6 +50,7 @@ var (
 	erEmail                 *regexp.Regexp
 	ErrEmailRemetente       = errors.New("negocio: formato de email do remetente inválido")
 	ErrCelularRemetente     = errors.New("negocio: formato de celular de remetente inválido")
+	Wsdl                    string
 )
 
 func init() {
@@ -315,7 +315,7 @@ type solicitaEtiquetasResponse struct {
 }
 
 //SolicitaEtiquetas faz a chamada ao SIGEPWEB e obtém uma faixa de etiquetas
-func SolicitaEtiquetas(wsdl string, codigo string, identificador string, qtdEtiquetas int, user string, senha string) (string, error) {
+func SolicitaEtiquetas(codigo string, identificador string, qtdEtiquetas int, user string, senha string) (string, error) {
 	payload := fmt.Sprintf(`
 		<x:Envelope
 		xmlns:x="http://schemas.xmlsoap.org/soap/envelope/"
@@ -333,7 +333,7 @@ func SolicitaEtiquetas(wsdl string, codigo string, identificador string, qtdEtiq
 		</x:Body>
 	</x:Envelope>
 	`)
-	req, err := http.NewRequest("POST", wsdl, strings.NewReader(payload))
+	req, err := http.NewRequest("POST", Wsdl, strings.NewReader(payload))
 	if err != nil {
 		return "", err
 	}
@@ -370,7 +370,7 @@ type geraDigitoVerificadorEtiquetasResponse struct {
 }
 
 //GeraDigitoVerificadorEtiquetas faz a chamada ao SIGPEWEB e gera o dígito verificador de uma etiqueta
-func GeraDigitoVerificadorEtiquetas(wsdl string, etiqueta string) (int, error) {
+func GeraDigitoVerificadorEtiquetas(etiqueta string) (int, error) {
 	payload := fmt.Sprintf(
 		`<x:Envelope xmlns:x="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cli="http://cliente.bean.master.sigep.bsb.correios.com.br/">
 		 <x:Header/>
@@ -383,7 +383,7 @@ func GeraDigitoVerificadorEtiquetas(wsdl string, etiqueta string) (int, error) {
 		</x:Body>
 		</x:Envelope>
 		`)
-	req, err := http.NewRequest("POST", wsdl, strings.NewReader(payload))
+	req, err := http.NewRequest("POST", Wsdl, strings.NewReader(payload))
 	if err != nil {
 		return 99, err
 	}
@@ -424,7 +424,7 @@ type buscaServicosResponse struct {
 }
 
 //BuscaServicos faz a chamada ao SIGEPWEB e obtém dados de indentificao de um cliente
-func BuscaServicos(wsdl string, contrato string, cartao string, usuario string, senha string) (buscaServicosResponse, error) {
+func BuscaServicos(contrato string, cartao string, usuario string, senha string) (buscaServicosResponse, error) {
 	servicos := buscaServicosResponse{}
 	payload := fmt.Sprintf(`
 		<x:Envelope xmlns:x="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cli="http://cliente.bean.master.sigep.bsb.correios.com.br/">
@@ -439,7 +439,7 @@ func BuscaServicos(wsdl string, contrato string, cartao string, usuario string, 
 			</x:Body>
 		</x:Envelope>
 	`)
-	req, err := http.NewRequest("POST", wsdl, strings.NewReader(payload))
+	req, err := http.NewRequest("POST", Wsdl, strings.NewReader(payload))
 	if err != nil {
 		return servicos, err
 	}
@@ -482,7 +482,7 @@ type ConsultaCEPResponse struct {
 }
 
 //ConsultaCEP faz a chamada ao SIGEPWEB e obtem o endereco correspondente a um CEP
-func ConsultaCEP(wsdl string, cep string) (ConsultaCEPResponse, error) {
+func ConsultaCEP(cep string) (ConsultaCEPResponse, error) {
 	endereco := ConsultaCEPResponse{}
 	payload := fmt.Sprintf(
 		`<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cli="http://cliente.bean.master.sigep.bsb.correios.com.br/">
@@ -494,7 +494,7 @@ func ConsultaCEP(wsdl string, cep string) (ConsultaCEPResponse, error) {
 			</cli:consultaCEP>
 		</soapenv:Body>
 		</soapenv:Envelope>`)
-	req, err := http.NewRequest("POST", wsdl, strings.NewReader(payload))
+	req, err := http.NewRequest("POST", Wsdl, strings.NewReader(payload))
 	if err != nil {
 		return endereco, err
 	}
@@ -534,22 +534,22 @@ type fechaPlpVariosServicosResponse struct {
 }
 
 //FechaPlpVariosServicos faz a chamada ao SIGPEWEB, fecha uma PLP
-func FechaPlpVariosServicos(wsdl string, etiqueta string, etiquetaSemVerificador string) (string, error) {
+func FechaPlpVariosServicos(etiqueta string, etiquetaSemVerificador string, idPlpCliente string, cartao string, usuario string, senha string) (string, error) {
 	payload := fmt.Sprintf(
 		`<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cli="http://cliente.bean.master.sigep.bsb.correios.com.br/">
 			<soapenv:Header/>
 			<soapenv:Body>
 				<cli:fechaPlpVariosServicos>
-					<xml><![CDATA[<?ml version="1.0" encoding="ISO-8859-1"?><correioslog><tipo_arquivo>Postagem</tipo_arquivo><versao_arquivo>2.3</versao_arquivo><plp><id_plp /><valor_global/><mcu_unidade_postagem/><nome_unidade_postagem/><cartao_postagem>0068600275</cartao_postagem></plp><remetente><numero_contrato>9912208555</numero_contrato><numero_diretoria>10</numero_diretoria><codigo_administrativo>08082650</codigo_administrativo><nome_remetente>Monitor de Fechamento de PLP</nome_remetente><logradouro_remetente>SNQ Quadra 1 Bloco A 2º SS</logradouro_remetente><numero_remetente>0</numero_remetente><complemento_remetente/><bairro_remetente>Asa Norte</bairro_remetente><cep_remetente>70002900</cep_remetente><cidade_remetente>Brasília</cidade_remetente><uf_remetente>DF</uf_remetente><telefone_remetente>6121416129</telefone_remetente><fax_remetente/><email_remetente/></remetente><forma_pagamento/><objeto_postal><numero_etiqueta>` + etiqueta + `</numero_etiqueta><codigo_objeto_cliente/><codigo_servico_postagem>04162</codigo_servico_postagem><cubagem>0,0000</cubagem><peso>800</peso><rt1/><rt2/><destinatario><nome_destinatario>Correios DETEC</nome_destinatario><telefone_destinatario>6121416129</telefone_destinatario><celular_destinatario/><email_destinatario/><logradouro_destinatario>SNN Quadra 1 Bloco A</logradouro_destinatario><complemento_destinatario/><numero_end_destinatario>0</numero_end_destinatario></destinatario><nacional><bairro_destinatario>Asa Norte</bairro_destinatario><cidade_destinatario>Brasília</cidade_destinatario><uf_destinatario>DF</uf_destinatario><cep_destinatario>70002900</cep_destinatario><codigo_usuario_postal/><centro_custo_cliente/><numero_nota_fiscal>1234567</numero_nota_fiscal><serie_nota_fiscal/><valor_nota_fiscal/><natureza_nota_fiscal/><descricao_objeto/><valor_a_cobrar>0,0</valor_a_cobrar></nacional><servico_adicional><codigo_servico_adicional>025</codigo_servico_adicional><valor_declarado/></servico_adicional><dimensao_objeto><tipo_objeto>002</tipo_objeto><dimensao_altura>50</dimensao_altura><dimensao_largura>30</dimensao_largura><dimensao_comprimento>40</dimensao_comprimento><dimensao_diametro>0</dimensao_diametro></dimensao_objeto><data_postagem_sara/><status_processamento>0</status_processamento><numero_comprovante_postagem/><valor_cobrado/></objeto_postal></correioslog>]]></xml>
-					<idPlpCliente>15052020</idPlpCliente>
-					<cartaoPostagem>0068600275</cartaoPostagem>
+					<xml><![CDATA[<?ml version="1.0" encoding="ISO-8859-1"?><correioslog><tipo_arquivo>Postagem</tipo_arquivo><versao_arquivo>2.3</versao_arquivo><plp><id_plp /><valor_global/><mcu_unidade_postagem/><nome_unidade_postagem/><cartao_postagem>0068600275</cartao_postagem></plp><remetente><numero_contrato>9912208555</numero_contrato><numero_diretoria>10</numero_diretoria><codigo_administrativo>08082650</codigo_administrativo><nome_remetente>Monitor de Fechamento de PLP</nome_remetente><logradouro_remetente>SNQ Quadra 1 Bloco A 2º SS</logradouro_remetente><numero_remetente>0</numero_remetente><complemento_remetente/><bairro_remetente>Asa Norte</bairro_remetente><cep_remetente>70002900</cep_remetente><cidade_remetente>Brasília</cidade_remetente><uf_remetente>DF</uf_remetente><telefone_remetente>6121416129</telefone_remetente><fax_remetente/><email_remetente/></remetente><forma_pagamento/><objeto_postal><numero_etiqueta>` + etiqueta + `</numero_etiqueta><codigo_objeto_cliente/><codigo_servico_postagem>04162</codigo_servico_postagem><cubagem>0,0000</cubagem><peso>800</peso><rt1/><rt2/><destinatario><nome_destinatario>Correios DESIN</nome_destinatario><telefone_destinatario>6121416129</telefone_destinatario><celular_destinatario/><email_destinatario/><logradouro_destinatario>SNN Quadra 1 Bloco A</logradouro_destinatario><complemento_destinatario/><numero_end_destinatario>0</numero_end_destinatario></destinatario><nacional><bairro_destinatario>Asa Norte</bairro_destinatario><cidade_destinatario>Brasília</cidade_destinatario><uf_destinatario>DF</uf_destinatario><cep_destinatario>70002900</cep_destinatario><codigo_usuario_postal/><centro_custo_cliente/><numero_nota_fiscal>1234567</numero_nota_fiscal><serie_nota_fiscal/><valor_nota_fiscal/><natureza_nota_fiscal/><descricao_objeto/><valor_a_cobrar>0,0</valor_a_cobrar></nacional><servico_adicional><codigo_servico_adicional>025</codigo_servico_adicional><valor_declarado/></servico_adicional><dimensao_objeto><tipo_objeto>002</tipo_objeto><dimensao_altura>50</dimensao_altura><dimensao_largura>30</dimensao_largura><dimensao_comprimento>40</dimensao_comprimento><dimensao_diametro>0</dimensao_diametro></dimensao_objeto><data_postagem_sara/><status_processamento>0</status_processamento><numero_comprovante_postagem/><valor_cobrado/></objeto_postal></correioslog>]]></xml>
+					<idPlpCliente>` + idPlpCliente + `</idPlpCliente>
+					<cartaoPostagem>` + cartao + `</cartaoPostagem>
 					<listaEtiquetas>` + etiquetaSemVerificador + `</listaEtiquetas>
-					<usuario>gati</usuario>
-					<senha>lbqhj</senha>
+					<usuario>` + usuario + `</usuario>
+					<senha>` + senha + `</senha>
 				</cli:fechaPlpVariosServicos>
 			</soapenv:Body>
 		</soapenv:Envelope>`)
-	req, err := http.NewRequest("POST", wsdl, strings.NewReader(payload))
+	req, err := http.NewRequest("POST", Wsdl, strings.NewReader(payload))
 	if err != nil {
 		return "", err
 	}
@@ -576,66 +576,4 @@ func FechaPlpVariosServicos(wsdl string, etiqueta string, etiquetaSemVerificador
 		return "", err
 	}
 	return plp.Body.FechaPlpVariosServicosResponse.NumeroPLP, nil
-}
-
-func removePlp(plpNu string, db *sql.DB) error {
-	//remove os objetos da PLP do banco
-	now := time.Now()
-	tx, err := db.Begin()
-	if err != nil {
-		return fmt.Errorf("erro conectar no banco para excluir plp: %s", err)
-	}
-	query := "DELETE FROM NEP_OBJETO_POSTAL WHERE PLP_NU = :plp"
-	_, err = tx.Exec(query, plpNu)
-	if err != nil {
-		if rollbackErr := tx.Rollback(); rollbackErr != nil {
-			return fmt.Errorf("erro ao excluir plp: %s", err)
-		}
-		return fmt.Errorf("erro ao excluir plp: %s", err)
-	}
-	//remove a PLP do banco
-	query = "DELETE FROM NEP_PRE_LISTA_POSTAGEM WHERE PLP_NU = :plp"
-	_, err = tx.Exec(query, plpNu)
-	if err != nil {
-		if rollbackErr := tx.Rollback(); rollbackErr != nil {
-			return fmt.Errorf("erro ao excluir plp: %s", err)
-		}
-		return fmt.Errorf("erro ao excluir plp: %s", err)
-	}
-	fmt.Printf("%s plp %s excluida em %.3f segundos\n", now.Format(LayoutMysql), plpNu, time.Since(now).Seconds())
-	return tx.Commit()
-}
-
-func removePlpPorEtiqueta(etiqueta string, db *sql.DB) error {
-	//remove os objetos da PLP do banco
-	now := time.Now()
-	tx, err := db.Begin()
-	var plpNu int64
-
-	row := db.QueryRow("SELECT PLP_NU FROM NEP_OBJETO_POSTAL WHERE obj_nu_etiqueta = :etiqueta", etiqueta)
-
-	err = row.Scan(&plpNu)
-
-	if err != nil {
-		return fmt.Errorf("erro conectar no banco para obter plp a excluir: %s", err)
-	}
-	query := `DELETE FROM NEP_OBJETO_POSTAL WHERE PLP_NU = :plp`
-	_, err = tx.Exec(query, plpNu)
-	if err != nil {
-		if rollbackErr := tx.Rollback(); rollbackErr != nil {
-			return fmt.Errorf("erro ao excluir plp: %s", err)
-		}
-		return fmt.Errorf("erro ao excluir plp: %s", err)
-	}
-	//remove a PLP do banco
-	query = `DELETE FROM NEP_PRE_LISTA_POSTAGEM WHERE PLP_NU =	:plp`
-	_, err = tx.Exec(query, plpNu)
-	if err != nil {
-		if rollbackErr := tx.Rollback(); rollbackErr != nil {
-			return fmt.Errorf("erro ao excluir plp: %s", err)
-		}
-		return fmt.Errorf("erro ao excluir plp: %s", err)
-	}
-	fmt.Printf("%s plp %s excluida em %.3f segundos\n", now.Format(LayoutMysql), plpNu, time.Since(now).Seconds())
-	return tx.Commit()
 }
