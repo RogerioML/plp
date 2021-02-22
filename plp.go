@@ -51,6 +51,8 @@ var (
 	ErrEmailRemetente       = errors.New("negocio: formato de email do remetente inválido")
 	ErrCelularRemetente     = errors.New("negocio: formato de celular de remetente inválido")
 	Wsdl                    string
+	User                    string
+	Pass                    string
 )
 
 func init() {
@@ -377,8 +379,8 @@ func GeraDigitoVerificadorEtiquetas(etiqueta string) (int, error) {
 		 <x:Body>
 			<cli:geraDigitoVerificadorEtiquetas>
 				<etiquetas>` + etiqueta + `</etiquetas>
-				<usuario>gati</usuario>
-				<senha>lbqhj</senha>
+				<usuario> ` + User + `</usuario>
+				<senha>` + Pass + `</senha>
 			</cli:geraDigitoVerificadorEtiquetas>
 		</x:Body>
 		</x:Envelope>
@@ -532,7 +534,7 @@ type solicitaPLPResponse struct {
 	} `xml:"Body"`
 }
 
-//ConsultaCEP faz a chamada ao SIGEPWEB e obtem o endereco correspondente a um CEP
+//SolicitaPLP faz a chamada ao SIGEPWEB e obtem o xml de uma PLP
 func SolicitaPLP(plp string, etiqueta string, usuario string, senha string) (string, error) {
 	ret := solicitaPLPResponse{}
 	payload := fmt.Sprintf(`
