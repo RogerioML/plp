@@ -19,7 +19,7 @@ import (
 const (
 	nuCliente = 2019020716
 	//Versao indica a versão atual do módulo de manipulação de PLPs
-	Versao      = "1.1.11"
+	Versao      = "1.1.12"
 	LayoutMysql = "2006-01-02 15:04:05"
 )
 
@@ -53,6 +53,7 @@ var (
 	Wsdl                    string
 	User                    string
 	Pass                    string
+	RegexEtiqueta           *regexp.Regexp
 )
 
 func init() {
@@ -63,6 +64,7 @@ func init() {
 	erUf = regexp.MustCompile(`^[a-zA-Z]{2}$`)
 	erTelefone = regexp.MustCompile(`^[0-9]*$`)
 	erEmail = regexp.MustCompile(`^[a-zA-Z0-9.!#$%&’*+/=?^_{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$`)
+	RegexEtiqueta = regexp.MustCompile(`^[A-Z]{2}[1-9]{9}[A-Z]{2}$`)
 }
 
 // Plp estrutura da PLP
@@ -305,6 +307,16 @@ type fault struct {
 	} `xml:"Body"`
 }
 
+//estrutura para conter o retorno do método cancelarObjeto
+type cancelarObjetoResponse struct {
+	XMLName xml.Name `xml:"Envelope"`
+	Body    struct {
+		CancelarObjetoResponse struct {
+			Retorno bool `xml:"return"`
+		} `xml:"cancelarObjetoResponse"`
+	} `xml:"Body"`
+}
+
 //estrutura para conter o retorno do método geraDigitoVeiricadorEtiquetas
 type solicitaEtiquetasResponse struct {
 	XMLName xml.Name `xml:"Envelope"`
@@ -314,6 +326,49 @@ type solicitaEtiquetasResponse struct {
 			FaixaEtiquetas string `xml:"return"`
 		} `xml:"solicitaEtiquetasResponse"`
 	} `xml:"Body"`
+}
+
+//CancelarObjeto faz a chamada ao SIGEPWEB para cancelar uma etiqueta obtida anteriormente
+func CancelarObjeto(etiqueta string, plp string, user string, senha string) error {
+	payload := fmt.Sprintf(`
+			<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cli="http://cliente.bean.master.sigep.bsb.correios.com.br/">
+			<soapenv:Header/>
+			<soapenv:Body>
+			<cli:cancelarObjeto>				
+				<idPlp>` + plp + `</idPlp>				
+				<numeroEtiqueta>` + etiqueta + `</numeroEtiqueta>				
+				<usuario>` + user + `</usuario>				
+				<senha>` + senha + `</senha>
+			</cli:cancelarObjeto>
+			</soapenv:Body>
+		</soapenv:Envelope>
+	`)
+	req, err := http.NewRequest("POST", Wsdl, strings.NewReader(payload))
+	if err != nil {
+		return err
+	}
+	http.DefaultClient.Transport = &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	b, err := ioutil.ReadAll(res.Body)
+	defer res.Body.Close()
+	if err != nil {
+		return err
+	}
+	b, err = IsoUtf8(b)
+	if strings.Contains(string(b), "faultstring") {
+		respError := fault{}
+		_ = xml.Unmarshal([]byte(b), &respError)
+		return errors.New(respError.Body.Fault.FaultString)
+	}
+	sucesso := cancelarObjetoResponse{}
+	_ = xml.Unmarshal([]byte(b), &sucesso)
+	if !sucesso.Body.CancelarObjetoResponse.Retorno {
+		return errors.New("erro desconhecido ao cancelar etiqueta")
+	}
+	return nil
 }
 
 //SolicitaEtiquetas faz a chamada ao SIGEPWEB e obtém uma faixa de etiquetas
@@ -589,13 +644,15 @@ type fechaPlpVariosServicosResponse struct {
 }
 
 //FechaPlpVariosServicos faz a chamada ao SIGPEWEB, fecha uma PLP
-func FechaPlpVariosServicos(etiqueta string, etiquetaSemVerificador string, idPlpCliente string, cartao string, usuario string, senha string) (string, error) {
+func FechaPlpVariosServicos(xmlPLP string, etiqueta string, etiquetaSemVerificador string, idPlpCliente string, cartao string, usuario string, senha string) (string, error) {
+	xmlPLP = strings.Replace(xmlPLP, "XX000000000XX", etiqueta, 1)
+
 	payload := fmt.Sprintf(
 		`<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:cli="http://cliente.bean.master.sigep.bsb.correios.com.br/">
 			<soapenv:Header/>
 			<soapenv:Body>
 				<cli:fechaPlpVariosServicos>
-					<xml><![CDATA[<?ml version="1.0" encoding="ISO-8859-1"?><correioslog><tipo_arquivo>Postagem</tipo_arquivo><versao_arquivo>2.3</versao_arquivo><plp><id_plp /><valor_global/><mcu_unidade_postagem/><nome_unidade_postagem/><cartao_postagem>0068600275</cartao_postagem></plp><remetente><numero_contrato>9912208555</numero_contrato><numero_diretoria>10</numero_diretoria><codigo_administrativo>08082650</codigo_administrativo><nome_remetente>Monitor de Fechamento de PLP</nome_remetente><logradouro_remetente>SNQ Quadra 1 Bloco A 2º SS</logradouro_remetente><numero_remetente>0</numero_remetente><complemento_remetente/><bairro_remetente>Asa Norte</bairro_remetente><cep_remetente>70002900</cep_remetente><cidade_remetente>Brasília</cidade_remetente><uf_remetente>DF</uf_remetente><telefone_remetente>6121416129</telefone_remetente><fax_remetente/><email_remetente/></remetente><forma_pagamento/><objeto_postal><numero_etiqueta>` + etiqueta + `</numero_etiqueta><codigo_objeto_cliente/><codigo_servico_postagem>04162</codigo_servico_postagem><cubagem>0,0000</cubagem><peso>800</peso><rt1/><rt2/><destinatario><nome_destinatario>Correios DESIN</nome_destinatario><telefone_destinatario>6121416129</telefone_destinatario><celular_destinatario/><email_destinatario/><logradouro_destinatario>SNN Quadra 1 Bloco A</logradouro_destinatario><complemento_destinatario/><numero_end_destinatario>0</numero_end_destinatario></destinatario><nacional><bairro_destinatario>Asa Norte</bairro_destinatario><cidade_destinatario>Brasília</cidade_destinatario><uf_destinatario>DF</uf_destinatario><cep_destinatario>70002900</cep_destinatario><codigo_usuario_postal/><centro_custo_cliente/><numero_nota_fiscal>1234567</numero_nota_fiscal><serie_nota_fiscal/><valor_nota_fiscal/><natureza_nota_fiscal/><descricao_objeto/><valor_a_cobrar>0,0</valor_a_cobrar></nacional><servico_adicional><codigo_servico_adicional>025</codigo_servico_adicional><valor_declarado/></servico_adicional><dimensao_objeto><tipo_objeto>002</tipo_objeto><dimensao_altura>50</dimensao_altura><dimensao_largura>30</dimensao_largura><dimensao_comprimento>40</dimensao_comprimento><dimensao_diametro>0</dimensao_diametro></dimensao_objeto><data_postagem_sara/><status_processamento>0</status_processamento><numero_comprovante_postagem/><valor_cobrado/></objeto_postal></correioslog>]]></xml>
+					<xml><![CDATA[` + xmlPLP + `]]></xml>
 					<idPlpCliente>` + idPlpCliente + `</idPlpCliente>
 					<cartaoPostagem>` + cartao + `</cartaoPostagem>
 					<listaEtiquetas>` + etiquetaSemVerificador + `</listaEtiquetas>
